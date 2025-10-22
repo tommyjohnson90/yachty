@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('clients')
-      .select('*, boats(count)', { count: 'exact' })
+      .select('*, boats(*)', { count: 'exact' })
       .order('name')
       .range(offset, offset + limit - 1)
 
