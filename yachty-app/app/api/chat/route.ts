@@ -38,14 +38,14 @@ export async function POST(request: NextRequest) {
 
     if (!userMessageValidation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: userMessageValidation.error.errors },
+        { error: 'Validation failed', details: userMessageValidation.error.issues },
         { status: 400 }
       )
     }
 
     // Save user message
-    const { data: userMessage, error: userMessageError } = await supabase
-      .from('chat_messages')
+    const { data: userMessage, error: userMessageError } = await (supabase
+      .from('chat_messages') as any)
       .insert(userMessageValidation.data)
       .select()
       .single()
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build context for AI
-    const messages: MessageParam[] = (messageHistory || []).map(msg => ({
+    const messages: MessageParam[] = (messageHistory || []).map((msg: any) => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
     }))
@@ -101,8 +101,8 @@ Communication style:
       : 'I apologize, but I encountered an error processing your request.'
 
     // Save assistant message
-    const { data: savedAssistantMessage, error: assistantMessageError } = await supabase
-      .from('chat_messages')
+    const { data: savedAssistantMessage, error: assistantMessageError } = await (supabase
+      .from('chat_messages') as any)
       .insert({
         session_id: sessionId,
         role: 'assistant',
@@ -122,8 +122,8 @@ Communication style:
     }
 
     // Update session last_message_at
-    await supabase
-      .from('chat_sessions')
+    await (supabase
+      .from('chat_sessions') as any)
       .update({ last_message_at: new Date().toISOString() })
       .eq('id', sessionId)
 

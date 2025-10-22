@@ -74,27 +74,29 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
+        { error: 'Validation failed', details: validation.error.issues },
         { status: 400 }
       )
     }
 
     // Get client info for OneDrive folder creation
-    const { data: client, error: clientError } = await supabase
+    const { data: clientData, error: clientError } = await supabase
       .from('clients')
       .select('name')
       .eq('id', validation.data.client_id)
       .single()
 
-    if (clientError || !client) {
+    if (clientError || !clientData) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
+    const clientName = (clientData as { name: string }).name
+
     // Create OneDrive folder structure
-    let onedriveFolderId = null
+    let onedriveFolderId: string | null = null
     try {
       const folderStructure = await createClientFolderStructure(
-        client.name,
+        clientName,
         validation.data.name
       )
       onedriveFolderId = folderStructure.boatFolderId || null
@@ -104,12 +106,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create boat
-    const { data, error } = await supabase
-      .from('boats')
-      .insert({
-        ...validation.data,
-        onedrive_folder_id: onedriveFolderId,
-      })
+    const insertData = {
+      ...validation.data,
+      onedrive_folder_id: onedriveFolderId,
+    }
+
+    const { data, error } = await (supabase
+      .from('boats') as any)
+      .insert(insertData)
       .select(`
         *,
         clients (

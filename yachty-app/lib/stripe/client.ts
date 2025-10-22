@@ -10,7 +10,7 @@ export function getStripeClient(): Stripe {
     }
 
     stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-01-27.acacia',
+      apiVersion: '2025-09-30.clover',
       typescript: true,
     })
   }
@@ -42,7 +42,6 @@ export async function createPaymentLink({
     currency,
     product_data: {
       name: `Invoice ${invoiceNumber}`,
-      description: `Payment for invoice ${invoiceNumber}`,
     },
   })
 
