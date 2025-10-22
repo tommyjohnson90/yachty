@@ -1,25 +1,34 @@
 import { z } from 'zod'
 
-// Email validation
-export const emailSchema = z.string().email('Invalid email address')
+// Email validation - allow empty strings or null for optional fields
+export const emailSchema = z
+  .string()
+  .email('Invalid email address')
+  .or(z.literal(''))
+  .or(z.null())
+  .optional()
+  .transform(val => (val === '' || val === null ? null : val))
 
-// Phone validation (US format)
-export const phoneSchema = z.string().regex(
-  /^(\+?1)?[\s.-]?\(?[0-9]{3}\)?[\s.-]?[0-9]{3}[\s.-]?[0-9]{4}$/,
-  'Invalid phone number format'
-)
+// Phone validation - more lenient, allow any reasonable phone format
+export const phoneSchema = z
+  .string()
+  .min(1)
+  .or(z.literal(''))
+  .or(z.null())
+  .optional()
+  .transform(val => (val === '' || val === null ? null : val))
 
 // Client validation
 export const clientSchema = z.object({
   name: z.string().min(1, 'Client name is required'),
-  email: emailSchema.optional().or(z.literal('')),
-  phone: phoneSchema.optional().or(z.literal('')),
-  billing_address: z.any().optional(),
+  email: emailSchema,
+  phone: phoneSchema,
+  billing_address: z.any().optional().nullable(),
   hourly_rate: z.number().min(0, 'Hourly rate must be positive').default(0),
   payment_terms: z.string().default('Net 30'),
   tax_rate: z.number().min(0).max(1, 'Tax rate must be between 0 and 1').default(0),
-  tax_jurisdiction: z.string().optional(),
-  notes: z.string().optional(),
+  tax_jurisdiction: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
 })
 
 // Boat validation

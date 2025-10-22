@@ -48,13 +48,16 @@ export default function ClientsPage() {
     }
   }
 
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.boats.some(boat =>
-      boat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredClients = clients.filter(client => {
+    const lowerQuery = searchQuery.toLowerCase()
+    return (
+      client.name.toLowerCase().includes(lowerQuery) ||
+      client.email?.toLowerCase().includes(lowerQuery) ||
+      client.boats.some(boat =>
+        boat.name.toLowerCase().includes(lowerQuery)
+      )
     )
-  )
+  })
 
   if (isLoading) {
     return (

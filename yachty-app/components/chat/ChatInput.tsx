@@ -3,6 +3,8 @@
 import { useState, useRef, KeyboardEvent } from 'react'
 import { cn } from '@/lib/utils/cn'
 
+const MAX_TEXTAREA_HEIGHT = 200 // Maximum height for textarea in pixels
+
 interface ChatInputProps {
   onSendMessage: (content: string, attachments?: File[]) => void
   isLoading?: boolean
@@ -48,7 +50,7 @@ export function ChatInput({ onSendMessage, isLoading, disabled }: ChatInputProps
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value)
     e.target.style.height = 'auto'
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
+    e.target.style.height = `${Math.min(e.target.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`
   }
 
   return (
@@ -127,7 +129,7 @@ export function ChatInput({ onSendMessage, isLoading, disabled }: ChatInputProps
                 'w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
                 (disabled || isLoading) && 'opacity-50 cursor-not-allowed'
               )}
-              style={{ maxHeight: '200px' }}
+              style={{ maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
             />
           </div>
 
