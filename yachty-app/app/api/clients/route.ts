@@ -73,14 +73,14 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
+        { error: 'Validation failed', details: validation.error.issues },
         { status: 400 }
       )
     }
 
     // Create client
-    const { data, error } = await supabase
-      .from('clients')
+    const { data, error } = await (supabase
+      .from('clients') as any)
       .insert(validation.data)
       .select()
       .single()

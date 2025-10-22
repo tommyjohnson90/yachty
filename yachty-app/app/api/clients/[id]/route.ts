@@ -5,9 +5,10 @@ import { NextRequest, NextResponse } from 'next/server'
 // GET /api/clients/[id] - Get single client
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     // Check authentication
@@ -32,7 +33,7 @@ export async function GET(
           year
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) {
@@ -53,9 +54,10 @@ export async function GET(
 // PATCH /api/clients/[id] - Update client
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     // Check authentication
@@ -74,16 +76,16 @@ export async function PATCH(
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validation.error.errors },
+        { error: 'Validation failed', details: validation.error.issues },
         { status: 400 }
       )
     }
 
     // Update client
-    const { data, error } = await supabase
-      .from('clients')
+    const { data, error } = await (supabase
+      .from('clients') as any)
       .update(validation.data)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -105,9 +107,10 @@ export async function PATCH(
 // DELETE /api/clients/[id] - Delete client
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     // Check authentication
@@ -120,7 +123,7 @@ export async function DELETE(
     }
 
     // Delete client (cascades to boats, equipment, etc.)
-    const { error } = await supabase.from('clients').delete().eq('id', params.id)
+    const { error } = await supabase.from('clients').delete().eq('id', id)
 
     if (error) {
       console.error('Error deleting client:', error)
