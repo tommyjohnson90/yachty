@@ -1,13 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { config } from '@/lib/config'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
+  // Check for error parameter from callback
+  useEffect(() => {
+    const error = searchParams.get('error')
+    if (error) {
+      setMessage({
+        type: 'error',
+        text: decodeURIComponent(error),
+      })
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,7 +32,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback`,
+          emailRedirectTo: `${config.appUrl}/auth/callback`,
         },
       })
 
