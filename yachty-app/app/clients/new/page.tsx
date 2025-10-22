@@ -96,6 +96,15 @@ export default function NewClientPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
+
+        // Handle validation errors with details
+        if (errorData.details && Array.isArray(errorData.details)) {
+          const errorMessages = errorData.details
+            .map((issue: any) => `${issue.path.join('.')}: ${issue.message}`)
+            .join('; ')
+          throw new Error(`Validation failed: ${errorMessages}`)
+        }
+
         throw new Error(errorData.error || 'Failed to create client')
       }
 

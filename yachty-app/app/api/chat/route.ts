@@ -89,16 +89,28 @@ Communication style:
 - Always confirm before making changes to data`
 
     // Get AI response
-    const aiResponse = await createChatCompletion({
-      model: ANTHROPIC_MODELS.SONNET,
-      messages,
-      system: systemPrompt,
-      maxTokens: 2048,
-    })
+    let assistantMessage: string
+    try {
+      const aiResponse = await createChatCompletion({
+        model: ANTHROPIC_MODELS.SONNET,
+        messages,
+        system: systemPrompt,
+        maxTokens: 2048,
+      })
 
-    const assistantMessage = aiResponse.content[0].type === 'text'
-      ? aiResponse.content[0].text
-      : 'I apologize, but I encountered an error processing your request.'
+      assistantMessage = aiResponse.content[0].type === 'text'
+        ? aiResponse.content[0].text
+        : 'I apologize, but I encountered an error processing your request.'
+    } catch (aiError: any) {
+      console.error('Error getting AI response:', aiError)
+
+      // Provide helpful fallback message based on error type
+      if (aiError.message?.includes('ANTHROPIC_API_KEY')) {
+        assistantMessage = 'Chat functionality is not yet configured. Please set up your Anthropic API key in the environment variables. In the meantime, your message has been saved.'
+      } else {
+        assistantMessage = `I'm sorry, I encountered an error: ${aiError.message || 'Unknown error'}. Your message has been saved, but I couldn't generate a response.`
+      }
+    }
 
     // Save assistant message
     const { data: savedAssistantMessage, error: assistantMessageError } = await (supabase
