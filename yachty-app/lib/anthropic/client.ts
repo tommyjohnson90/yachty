@@ -1,6 +1,7 @@
+import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk'
 import Anthropic from '@anthropic-ai/sdk'
 
-// Singleton instance
+// Keep the standard Anthropic client for image analysis
 let anthropicClient: Anthropic | null = null
 
 export function getAnthropicClient(): Anthropic {
@@ -28,7 +29,103 @@ export const ANTHROPIC_MODELS = {
 
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[keyof typeof ANTHROPIC_MODELS]
 
-// Helper function for streaming chat completions
+// Agent SDK-based chat completion with skills and tools support
+export async function createAgentChatCompletion({
+  messages,
+  system,
+  maxTurns = 10,
+  allowedTools,
+}: {
+  messages: { role: 'user' | 'assistant'; content: string }[]
+  system?: string
+  maxTurns?: number
+  allowedTools?: string[]
+}) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not set')
+  }
+
+  // Build the prompt from message history
+  const conversationContext = messages
+    .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+    .join('\n\n')
+
+  const fullPrompt = system
+    ? `${system}\n\nConversation:\n${conversationContext}`
+    : conversationContext
+
+  let result = ''
+  const textChunks: string[] = []
+
+  // Use the agent SDK query function
+  for await (const message of query({
+    prompt: fullPrompt,
+    options: {
+      maxTurns,
+      allowedTools: allowedTools || ['WebSearch', 'WebFetch', 'Read', 'Grep', 'Glob'],
+    },
+  })) {
+    // Collect text from assistant messages during streaming
+    if (message.type === 'assistant') {
+      for (const block of message.message.content) {
+        if (block.type === 'text') {
+          textChunks.push(block.text)
+        }
+      }
+    }
+
+    // Get final result when query completes
+    if (message.type === 'result' && message.subtype === 'success') {
+      result = message.result
+    }
+  }
+
+  // Use the final result if available, otherwise concatenate text chunks
+  const finalText = result || textChunks.join('')
+
+  return {
+    content: [{ type: 'text' as const, text: finalText }],
+  }
+}
+
+// Streaming version for agent chat completion
+export async function* streamAgentChatCompletion({
+  messages,
+  system,
+  maxTurns = 10,
+  allowedTools,
+}: {
+  messages: { role: 'user' | 'assistant'; content: string }[]
+  system?: string
+  maxTurns?: number
+  allowedTools?: string[]
+}) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not set')
+  }
+
+  // Build the prompt from message history
+  const conversationContext = messages
+    .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+    .join('\n\n')
+
+  const fullPrompt = system
+    ? `${system}\n\nConversation:\n${conversationContext}`
+    : conversationContext
+
+  // Stream messages from the agent SDK
+  for await (const message of query({
+    prompt: fullPrompt,
+    options: {
+      maxTurns,
+      allowedTools: allowedTools || ['WebSearch', 'WebFetch', 'Read', 'Grep', 'Glob'],
+    },
+  })) {
+    yield message
+  }
+}
+
+// Legacy function for backward compatibility (delegates to standard SDK)
 export async function createChatCompletion({
   model = ANTHROPIC_MODELS.SONNET,
   messages,
@@ -56,7 +153,7 @@ export async function createChatCompletion({
   })
 }
 
-// Helper for streaming responses
+// Legacy streaming function for backward compatibility
 export async function* streamChatCompletion({
   model = ANTHROPIC_MODELS.SONNET,
   messages,

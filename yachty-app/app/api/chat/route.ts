@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { createChatCompletion, ANTHROPIC_MODELS } from '@/lib/anthropic/client'
+import { createAgentChatCompletion, ANTHROPIC_MODELS } from '@/lib/anthropic/client'
 import { chatMessageSchema } from '@/lib/utils/validation'
 import { NextRequest, NextResponse } from 'next/server'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/messages'
 
 // POST /api/chat - Send a message and get AI response
 export async function POST(request: NextRequest) {
@@ -81,12 +80,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Build context for AI
-    const messages: MessageParam[] = (messageHistory || []).map((msg: any) => ({
+    const messages: { role: 'user' | 'assistant'; content: string }[] = (
+      messageHistory || []
+    ).map((msg: any) => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
     }))
 
-    // System prompt (basic version - will be expanded based on PRD)
+    // Enhanced system prompt for agent with skills
     const systemPrompt = `You are a yacht management assistant helping manage multiple client vessels.
 
 Your capabilities:
@@ -94,29 +95,46 @@ Your capabilities:
 - Help track work and time
 - Assist with invoicing and client management
 - Process receipts and expenses
+- Research parts and supplies using web search
+- Access documentation and guides
+
+Context for this conversation:
+${activeBoatId ? `- Active Boat ID: ${activeBoatId}` : ''}
+${activeClientId ? `- Active Client ID: ${activeClientId}` : ''}
 
 Communication style:
 - Professional but conversational
 - Proactive in suggesting actions
-- Always confirm before making changes to data`
+- Always confirm before making changes to data
+- Use your tools and skills to provide accurate, helpful information
 
-    // Get AI response
+You have access to various tools like WebSearch, WebFetch, Read, Grep, and Glob. Use them when needed to provide better answers.
+Any skills configured on the Anthropic dashboard will be automatically available to you.`
+
+    // Get AI response using Agent SDK
     let assistantMessage: string
     try {
-      console.log('Calling Anthropic API with', messages.length, 'messages')
-      const aiResponse = await createChatCompletion({
-        model: ANTHROPIC_MODELS.SONNET,
+      console.log('Calling Claude Agent SDK with', messages.length, 'messages')
+      const aiResponse = await createAgentChatCompletion({
         messages,
         system: systemPrompt,
-        maxTokens: 2048,
+        maxTurns: 10,
+        allowedTools: [
+          'WebSearch',
+          'WebFetch',
+          'Read',
+          'Grep',
+          'Glob',
+          'Bash',
+        ],
       })
 
-      console.log('Anthropic API response received:', aiResponse.content[0])
+      console.log('Agent SDK response received:', aiResponse.content[0])
       assistantMessage = aiResponse.content[0].type === 'text'
         ? aiResponse.content[0].text
         : 'I apologize, but I encountered an error processing your request.'
     } catch (aiError: any) {
-      console.error('Error getting AI response:', aiError)
+      console.error('Error getting agent response:', aiError)
 
       // Provide helpful fallback message based on error type
       if (aiError.message?.includes('ANTHROPIC_API_KEY')) {
