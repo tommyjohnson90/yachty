@@ -360,6 +360,7 @@ describe('Validation Schemas', () => {
   describe('chatMessageSchema', () => {
     const validMessage = {
       session_id: '123e4567-e89b-12d3-a456-426614174000',
+      user_id: '123e4567-e89b-12d3-a456-426614174003',
       role: 'user' as const,
       content: 'What maintenance is due?',
       active_boat_id: '123e4567-e89b-12d3-a456-426614174001',
