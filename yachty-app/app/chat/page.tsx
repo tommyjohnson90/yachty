@@ -109,14 +109,20 @@ export default function ChatPage() {
 
       const data = await response.json()
 
+      console.log('API Response:', data)
+      console.log('User Message:', data.userMessage)
+      console.log('Assistant Message:', data.assistantMessage)
+
       // Replace optimistic message with actual messages from server
       setMessages(prev => {
         const withoutOptimistic = prev.filter(m => m.id !== optimisticMessage.id)
-        return [
+        const newMessages = [
           ...withoutOptimistic,
           data.userMessage,
           data.assistantMessage,
         ]
+        console.log('Updated messages state:', newMessages)
+        return newMessages
       })
     } catch (err) {
       console.error('Error sending message:', err)

@@ -2,6 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // DEVELOPMENT MODE: Disable authentication checks
+  // TODO: Re-enable authentication before production deployment
+  const DISABLE_AUTH = true
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -31,6 +35,11 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  // Skip authentication checks in development mode
+  if (DISABLE_AUTH) {
+    return supabaseResponse
+  }
 
   // Protected routes - redirect to login if not authenticated
   if (!user && !request.nextUrl.pathname.startsWith('/auth')) {
