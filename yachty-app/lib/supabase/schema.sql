@@ -267,6 +267,7 @@ CREATE TABLE pending_approvals (
 -- Chat sessions table
 CREATE TABLE chat_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   last_message_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -276,6 +277,7 @@ CREATE TABLE chat_sessions (
 CREATE TABLE chat_messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
   content TEXT NOT NULL,
   active_boat_id UUID REFERENCES boats(id) ON DELETE SET NULL,
@@ -329,7 +331,9 @@ CREATE INDEX idx_work_sessions_boat_id ON work_sessions(boat_id);
 CREATE INDEX idx_work_sessions_client_id ON work_sessions(client_id);
 CREATE INDEX idx_work_items_boat_id ON work_items(boat_id);
 CREATE INDEX idx_invoices_client_id ON invoices(client_id);
+CREATE INDEX idx_chat_sessions_user_id ON chat_sessions(user_id);
 CREATE INDEX idx_chat_messages_session_id ON chat_messages(session_id);
+CREATE INDEX idx_chat_messages_user_id ON chat_messages(user_id);
 CREATE INDEX idx_pending_approvals_status ON pending_approvals(status);
 
 -- Create updated_at trigger function
@@ -346,3 +350,43 @@ CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients FOR EACH ROW E
 CREATE TRIGGER update_boats_updated_at BEFORE UPDATE ON boats FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_equipment_updated_at BEFORE UPDATE ON equipment FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_parts_updated_at BEFORE UPDATE ON parts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable Row Level Security on chat tables
+ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+
+-- Chat sessions RLS policies
+CREATE POLICY "Users can view their own chat sessions"
+  ON chat_sessions FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create chat sessions"
+  ON chat_sessions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own chat sessions"
+  ON chat_sessions FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own chat sessions"
+  ON chat_sessions FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Chat messages RLS policies
+CREATE POLICY "Users can view their own chat messages"
+  ON chat_messages FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create chat messages"
+  ON chat_messages FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own chat messages"
+  ON chat_messages FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own chat messages"
+  ON chat_messages FOR DELETE
+  USING (auth.uid() = user_id);

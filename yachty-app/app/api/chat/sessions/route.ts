@@ -4,13 +4,22 @@ import { NextRequest, NextResponse } from 'next/server'
 // POST /api/chat/sessions - Create a new chat session
 export async function POST(request: NextRequest) {
   try {
+    // DEVELOPMENT MODE: Use test user when auth is disabled
+    const DEV_MODE = true
+    const DEV_USER_ID = 'dd3d31db-ad83-4dde-b6b8-4900efcd25ec' // tommyjohnson90@gmail.com
+
     const supabase = await createClient()
 
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
+    // Use dev user if in dev mode and no authenticated user
+    const effectiveUser = DEV_MODE && !user
+      ? { id: DEV_USER_ID, email: 'tommyjohnson90@gmail.com' }
+      : user
+
+    if (!effectiveUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -18,6 +27,7 @@ export async function POST(request: NextRequest) {
     const { data: session, error } = await (supabase
       .from('chat_sessions') as any)
       .insert({
+        user_id: effectiveUser.id,
         title: 'New Chat',
         last_message_at: new Date().toISOString(),
       })
@@ -45,13 +55,22 @@ export async function POST(request: NextRequest) {
 // GET /api/chat/sessions - Get all chat sessions
 export async function GET(request: NextRequest) {
   try {
+    // DEVELOPMENT MODE: Use test user when auth is disabled
+    const DEV_MODE = true
+    const DEV_USER_ID = 'dd3d31db-ad83-4dde-b6b8-4900efcd25ec' // tommyjohnson90@gmail.com
+
     const supabase = await createClient()
 
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
+    // Use dev user if in dev mode and no authenticated user
+    const effectiveUser = DEV_MODE && !user
+      ? { id: DEV_USER_ID, email: 'tommyjohnson90@gmail.com' }
+      : user
+
+    if (!effectiveUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

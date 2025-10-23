@@ -127,10 +127,11 @@ export const invoiceSchema = z.object({
 // Chat message validation
 export const chatMessageSchema = z.object({
   session_id: z.string().uuid('Invalid session ID'),
+  user_id: z.string().uuid('Invalid user ID'),
   role: z.enum(['user', 'assistant', 'system']),
   content: z.string().min(1, 'Message content is required'),
-  active_boat_id: z.string().uuid().optional(),
-  active_client_id: z.string().uuid().optional(),
+  active_boat_id: z.string().uuid().nullable().optional(),
+  active_client_id: z.string().uuid().nullable().optional(),
   attachments: z.any().optional(),
 })
 

@@ -7,13 +7,22 @@ import type { MessageParam } from '@anthropic-ai/sdk/resources/messages'
 // POST /api/chat - Send a message and get AI response
 export async function POST(request: NextRequest) {
   try {
+    // DEVELOPMENT MODE: Use test user when auth is disabled
+    const DEV_MODE = true
+    const DEV_USER_ID = 'dd3d31db-ad83-4dde-b6b8-4900efcd25ec' // tommyjohnson90@gmail.com
+
     const supabase = await createClient()
 
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
+    // Use dev user if in dev mode and no authenticated user
+    const effectiveUser = DEV_MODE && !user
+      ? { id: DEV_USER_ID, email: 'tommyjohnson90@gmail.com' }
+      : user
+
+    if (!effectiveUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -30,6 +39,7 @@ export async function POST(request: NextRequest) {
     // Validate and save user message
     const userMessageValidation = chatMessageSchema.safeParse({
       session_id: sessionId,
+      user_id: effectiveUser.id,
       role: 'user',
       content: message,
       active_boat_id: activeBoatId,
@@ -44,6 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save user message
+    console.log('Saving user message:', userMessageValidation.data)
     const { data: userMessage, error: userMessageError } = await (supabase
       .from('chat_messages') as any)
       .insert(userMessageValidation.data)
@@ -54,6 +65,7 @@ export async function POST(request: NextRequest) {
       console.error('Error saving user message:', userMessageError)
       return NextResponse.json({ error: userMessageError.message }, { status: 500 })
     }
+    console.log('User message saved:', userMessage)
 
     // Get recent message history for context
     const { data: messageHistory, error: historyError } = await supabase
@@ -91,6 +103,7 @@ Communication style:
     // Get AI response
     let assistantMessage: string
     try {
+      console.log('Calling Anthropic API with', messages.length, 'messages')
       const aiResponse = await createChatCompletion({
         model: ANTHROPIC_MODELS.SONNET,
         messages,
@@ -98,6 +111,7 @@ Communication style:
         maxTokens: 2048,
       })
 
+      console.log('Anthropic API response received:', aiResponse.content[0])
       assistantMessage = aiResponse.content[0].type === 'text'
         ? aiResponse.content[0].text
         : 'I apologize, but I encountered an error processing your request.'
@@ -113,10 +127,12 @@ Communication style:
     }
 
     // Save assistant message
+    console.log('Saving assistant message for session:', sessionId)
     const { data: savedAssistantMessage, error: assistantMessageError } = await (supabase
       .from('chat_messages') as any)
       .insert({
         session_id: sessionId,
+        user_id: effectiveUser.id,
         role: 'assistant',
         content: assistantMessage,
         active_boat_id: activeBoatId,
@@ -132,6 +148,7 @@ Communication style:
         { status: 500 }
       )
     }
+    console.log('Assistant message saved:', savedAssistantMessage)
 
     // Update session last_message_at
     await (supabase
@@ -155,13 +172,22 @@ Communication style:
 // GET /api/chat?session_id=xxx - Get chat history
 export async function GET(request: NextRequest) {
   try {
+    // DEVELOPMENT MODE: Use test user when auth is disabled
+    const DEV_MODE = true
+    const DEV_USER_ID = 'dd3d31db-ad83-4dde-b6b8-4900efcd25ec' // tommyjohnson90@gmail.com
+
     const supabase = await createClient()
 
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
+    // Use dev user if in dev mode and no authenticated user
+    const effectiveUser = DEV_MODE && !user
+      ? { id: DEV_USER_ID, email: 'tommyjohnson90@gmail.com' }
+      : user
+
+    if (!effectiveUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

@@ -720,18 +720,21 @@ export interface Database {
       chat_sessions: {
         Row: {
           id: string
+          user_id: string
           title: string | null
           created_at: string
           last_message_at: string
         }
         Insert: {
           id?: string
+          user_id: string
           title?: string | null
           created_at?: string
           last_message_at?: string
         }
         Update: {
           id?: string
+          user_id?: string
           title?: string | null
           created_at?: string
           last_message_at?: string
@@ -741,6 +744,7 @@ export interface Database {
         Row: {
           id: string
           session_id: string
+          user_id: string
           role: 'user' | 'assistant' | 'system'
           content: string
           active_boat_id: string | null
@@ -751,6 +755,7 @@ export interface Database {
         Insert: {
           id?: string
           session_id: string
+          user_id: string
           role: 'user' | 'assistant' | 'system'
           content: string
           active_boat_id?: string | null
@@ -761,6 +766,7 @@ export interface Database {
         Update: {
           id?: string
           session_id?: string
+          user_id?: string
           role?: 'user' | 'assistant' | 'system'
           content?: string
           active_boat_id?: string | null
